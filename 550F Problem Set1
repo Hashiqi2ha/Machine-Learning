@@ -1,0 +1,209 @@
+Question 1
+I collect a set of data (n = 100 observations) containing a single predictor and a quantitative response. I then fit a linear regression model to the data, as well as a separate cubic regression, i.e. Y = β0 + β1 ·X1 + β2 ·X2 + β3X3 + ε
+(a) Suppose that the true relationship between X and Y is linear, i.e., Y = β0 + β1 ·X + . Consider the training residual sum of squares (RSS) for the linear regression, and also the training RSS for the cubic regression. Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell? Justify your answer.
+``` {r}
+# For training dataset, there is not enough information to tell the difference between two RSSs. Although the true relationship between X and Y is linear, the cubic regression is more flexible on the training data set, making it possible that the RSS for the cubic regression on the training data set is lower. On the hand, it is also possible to expect the RSS would be lower for linear regression when the true relationship is linear.
+```
+
+(b) Suppose that the true relationship between X and Y is not linear, but we don’t know how far it is from linear. Consider the training RSS for the linear regression, and also the training RSS for the cubic regression. Would we expect one to be lower than the other, would we expect them to be the same, or is there not enough information to tell? Justify your answer.
+``` {r}
+# When the true relationship is not linear, we can expect the RSS for the cubic regression to be lower than that for the linear regression since the cubic regression is more flexible and can better adjust for the training dataset, hence generating a lower RSS.
+```
+
+
+Question 2
+This question involves the use of multiple linear regression on the Auto data set. You can access it by installing the ISLR package via install.packages("ISLR") and loading it via library(ISLR). Then you can access the data set via the object name Auto.
+(a) Produce a scatterplot matrix which includes all of the variables in the data set using the function pairs().
+``` {r}
+library("ISLR")
+pairs(Auto)
+```
+(b) Compute the matrix of correlations between the variables using the function cor(). You will need to exclude the name variable, which is qualitative.
+```{r}
+cor(Auto[-c(9)])
+```
+(c) Use the lm() function to perform a multiple linear regression with mpg as the response and all other variables except name as the predictors. Use the summary() function to print the results. Comment on the output. For instance:
+•Is there a relationship between the predictors and the response?
+•Which predictors appear to have a statistically significant relationship to the response?
+•What does the coefficient for the year variable suggest?
+```{r}
+attach(Auto)
+lm.fit <- lm(mpg~cylinders+displacement+horsepower+weight+acceleration+year+origin, data = Auto)
+summary(lm.fit)
+# There is a relationship between predictors and the response.
+# Displacement,Weight, Year and Origin have statistically significant relationship to the response.
+# The coefficient for the year variable suggests that when the mpg increase by 1, the year variable will increase by 0.75.
+```
+(d) Use the * symbol to fit one linear regression model with these interaction terms: displacement × horsepower, displacement×weight and horsepower×weight, along with the individual variables. Do any interactions appear to be statistically significant?
+``` {r}
+lm.fit2 <- lm(mpg~displacement*horsepower+displacement*weight+horsepower*weight)
+summary(lm.fit2)
+# Displacement*weight appears to be statistically significant.
+```
+
+
+Question 3
+This problem involves the Boston data set. You can access it by installing the MASS package via install.packages("MASS") and loading it via library(MASS). Then you can access the data set via the object name Boston.
+For a description of the various variables, you can type: ?Boston
+We will now try to predict per capita crime rate using the other variables in this data set. In other words,per capita crime rate is the response, and the other variables are the predictors.
+(a) Fit a multiple regression model to predict the response using the following predictors: zn, indus, chas, nox, rm, age, dis, rad, tax, ptratio, lstat, medv. Describe your results. For which predictors can we reject the null hypothesis H0 : βj = 0?
+``` {r}
+library("MASS")
+attach(Boston)
+boston.fit <- lm(crim~zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+lstat+medv)
+summary(boston.fit)
+# In order to reject the null hypothesis βj = 0, we need to find statistically significant variables, which are dis, rad and medv.
+```
+(b) Is there evidence of non-linear association between median home values and crime rate?
+i. Fit the quardratic model Y = β0 + β1 ·medv + β2 ·medv2 + ε
+``` {r}
+boston.fit2 <- lm(crim~medv+I(medv^2))
+summary(boston.fit2)
+# There is evidence of non-linear association between median home values and crime rate as both medv and medv^2 are statistically significant variables.
+```
+ii. Fit a polynomial model of degree 5 using the poly() command,i.e. lm(y~poly(x,degree=degree,raw=TRUE)).
+``` {r}
+boston.fit3 <- lm(crim~poly(medv, degree = 5, raw = TRUE))
+summary(boston.fit3)
+# The raw polynomial model indicates that there is a linear relationship between first order medv and crim.
+```
+iii. Fit an orthogonal polynomial model of degree 5 using the poly() command,i.e. lm(y~poly(x,degree=degree,raw=FALSE)).
+``` {r}
+boston.fit4 <- lm(crim~poly(medv, degree = 5, raw = FALSE))
+summary(boston.fit4)
+# The orthogonal polynomial model indicates that medv, medv^2, medv^3 and medv^4 are statistically significant variables and is evident to show a non-linear association between median home values and crime rate.
+```
+
+
+Question 4
+In this exercise, we will predict the number of applications received using the other variables in the College data set from the ISLR package in Question 2.
+(a) Split the data set into a training set and a test set each containing half the data set. Set the random seed as 1234, i.e. set.seed(1234) and use the sample() function to pseudo-randomly determine the indices of observations in the training set, i.e. train.idx = sample(# observations in full sample, # observations in the training set)‘. You would include these observations in the training set, and exclude them from the test set.
+``` {r}
+attach(College)
+set.seed(1234)
+train <- sample(nrow(College), nrow(College)/2)
+college.train <- College[train,]
+college.test <- College[-train,]
+dim(college.train)
+dim(college.test)
+```
+(b) Fit a linear model using least squares on the training set, and report the test error (MSE) obtained. You can obtain the fitted values using the predict() function, i.e. predict(fit, test data).
+``` {r}
+college.fit <- lm(Apps~., data = college.train)
+summary(college.fit)
+mean((college.test$Apps-predict(college.fit, college.test))^2)
+# The MSE for a linear model is 998713.2
+```
+(c) Fit a ridge regression model on the training set, with λ chosen by cross-validation. Report the test error obtained.
+``` {r}
+library(glmnet)
+x <- model.matrix(Apps~., data = college.train)[,-1]
+y <- college.train$Apps
+cv.out <- cv.glmnet(x, y, alpha = 0)
+bestlambda <- cv.out$lambda.min
+ridge.mod <- glmnet(x, y, alpha = 0, lambda = bestlambda)
+x.test <- model.matrix(Apps~., data = college.test)[,-1]
+y <- college.test$Apps
+predict.y <-predict(ridge.mod, x.test)
+mean((y-predict.y)^2)
+# Test MSE for a ridge regression model is 964642.
+```
+(d) Fit a lasso model on the training set, with λ chosen by cross-validation. Report the test error obtained, along with the number of non-zero coefficient estimates.
+``` {r}
+x <- model.matrix(Apps~., data = college.train)[,-1]
+y <- college.train$Apps
+cv.out <- cv.glmnet(x, y, alpha = 1)
+bestlambda <- cv.out$lambda.min
+ridge.mod <- glmnet(x, y, alpha = 1, lambda = bestlambda)
+x.test <- model.matrix(Apps~., data = college.test)[,-1]
+y <- college.test$Apps
+predict.y <-predict(ridge.mod, x.test)
+mean((y-predict.y)^2)
+# Test MSE for a lasso model is 966142.2.
+```
+
+
+Question 5
+In this question, you will deploy a neural network to learn how stock options are priced in the market. You have a combined dataset containing some datapoints of stock options. You want to predict call option prices (Cn) using the variables Sn (current stock price), K (option strike price), T (option maturity), r (risk-free rate) and sigma (volatility). Exercises like these are routine for hedge funds aiming to develop trading systems.
+(a) Prepare the data. Download "stockoptions_sample.Rdata" from Canvas. From the top menu in RStudio, go to Session -> Set Working Directory -> Choose Directory, and pick the folder the file is saved to. Load the data by calling load("stockoptions_sample.Rdata"). The data contains two datasets, train.sample and test.sample. You may use the command summary() to get an overview of the datasets.
+``` {r}
+setwd("C:/Users/chung/Desktop/olin/FIN550F")
+load("stockoption_sample.Rdata")
+summary(train.sample)
+summary(test.sample)
+```
+(b) Linear model. Fit a linear model to the training data to predict call option prices using all the input variables, in the first order. What is the test MSE?
+``` {r}
+stock.fit <- lm(train.sample$Cn~., data = train.sample)
+summary(stock.fit)
+call.predict <- predict(stock.fit, test.sample)
+mean((test.sample$Cn-call.predict)^2)
+# Test MSE is 0.00199.
+```
+(c) Transform the input data to a scale between 0 and 1. Using the code below, define the transformation based on the training data. Then compute transformed versions of the training data and the test data. What is the minimum call option price in the training data before the transformation? (call it min.Cn) What about the maximum? (call it max.Cn)
+library(caret)
+transformation = preProcess(train.sample, method="range")
+train.sample.transformed = predict(transformation, train.sample)
+test.sample.transformed = predict(transformation, test.sample)
+``` {r}
+min.Cn <- min(train.sample$Cn)
+max.Cn <- max(train.sample$Cn)
+library(caret)
+transformation = preProcess(train.sample, method="range")
+train.sample.transformed = predict(transformation, train.sample)
+test.sample.transformed = predict(transformation, test.sample)
+c(min.Cn, max.Cn)
+# The minimum call option price before transformation is -0.0296 and the maximum call option price before transformation is 1.2053.
+```
+(d) Neural network.
+(i) Train a neural network. Train a neural network with 1 hidden layer of 5 neurons using the format below. Include the plot in the write-up.
+library(neuralnet)
+set.seed(1)
+nn = neuralnet(y ~., data=train.sample.transformed, linear.output=F,
+hidden= c(#number of neurons in layer 1, #...layer 2, ...) )
+plot(nn=,rep="best")
+``` {r}
+library(neuralnet)
+set.seed(1)
+nn = neuralnet(train.sample.transformed$Cn ~., data=train.sample.transformed, linear.output=F,hidden= 5)
+plot(nn,rep="best")
+```
+(ii) Calculate the test MSE. Compute (scaled) predicted values using the transformed test data (test.Cn.scaled = predict(nn, test.sample.transformed)). Then, transform the (scaled) predicted values back to the original scale:
+ˆCn = ˆCn scaled ×(max.Cn −min.Cn) + min.Cn
+What is the test MSE?
+``` {r}
+test.Cn.scaled <- predict(nn, test.sample.transformed)
+test.Cn <- test.Cn.scaled*(max.Cn-min.Cn) + min.Cn
+mean((test.sample$Cn-test.Cn)^2)
+# Test MSE is 0.0004.
+```
+(e) Deploy a wider neural network. Repeat the model in part (d) while increasing the number of neurons to 20. What is the test MSE now and how does it compare with the previous model
+``` {r}
+set.seed(1)
+nn = neuralnet(train.sample.transformed$Cn ~., data=train.sample.transformed, linear.output=F,hidden= 20)
+plot(nn,rep="best")
+test.Cn.scaled <- predict(nn, test.sample.transformed)
+test.Cn <- test.Cn.scaled*(max.Cn-min.Cn) + min.Cn
+mean((test.sample$Cn-test.Cn)^2)
+# Test MSE is 0.000088.
+```
+(f) Deploy an even wider neural network. Repeat the model in part (d) while increasing the number of neurons to 100. What is the test MSE now and how does it compare with the previous models?
+``` {r}
+set.seed(1)
+nn = neuralnet(train.sample.transformed$Cn ~., data=train.sample.transformed, linear.output=F,hidden= 100)
+plot(nn,rep="best")
+test.Cn.scaled <- predict(nn, test.sample.transformed)
+test.Cn <- test.Cn.scaled*(max.Cn-min.Cn) + min.Cn
+mean((test.sample$Cn-test.Cn)^2)
+# Test MSE is 0.00015.
+```
+(g) Deploy a deeper neural network. Repeat the model in part (d) using 2 hidden layers with 20 neurons each. What is the test MSE now and how does it compare with the previous models?
+``` {r}
+set.seed(1)
+nn = neuralnet(train.sample.transformed$Cn ~., data=train.sample.transformed, linear.output=F,hidden= c(20, 20))
+plot(nn,rep="best")
+test.Cn.scaled <- predict(nn, test.sample.transformed)
+test.Cn <- test.Cn.scaled*(max.Cn-min.Cn) + min.Cn
+mean((test.sample$Cn-test.Cn)^2)
+# Test MSE is 0.000058.
+```
